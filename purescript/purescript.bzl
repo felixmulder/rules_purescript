@@ -12,20 +12,13 @@ def _purescript_compile(ctx, trans=[]):
     target = ctx.actions.declare_file(ctx.outputs.target.basename)
     purs = ctx.executable.purs
 
-    if len(trans) == 0:
-      cmd = """
-          set -o errexit
-          "$1" compile --output "$2" "${@:3}"
-      """
-    else:
-      cmd = "\n".join(
-          [ "set -o errexit"
-          , """mkdir "$2" """
-          ] +
-          [compile_trans_template.format(path = f, output = target.path) for f in trans] +
-          [ """ "$1" compile --output "$2" "${@:3}" """ ]
-      )
-
+    cmd = "\n".join(
+        [ "set -o errexit"
+        , """mkdir "$2" """
+        ] +
+        [compile_trans_template.format(path = f, output = target.path) for f in trans] +
+        [ """ "$1" compile --output "$2" "${@:3}" """ ]
+    )
 
     ctx.actions.run_shell(
         inputs = srcs + [purs],
