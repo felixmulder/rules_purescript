@@ -5,6 +5,8 @@ sort it out, for now you can copy the `purescript.bzl` file to your `./tools/`
 directory and ignore the `http_archive` directive. Replace all occurrences of
 `@io_bazel_rules_purescript//:purescript.bzl` with `//tools:purescript.bzl`
 
+Using these rules
+-----------------
 This repo is the beginnings of support for purescript in Bazel. In order to use
 this put the following into your `WORKSPACE` file:
 
