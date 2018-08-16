@@ -1,3 +1,5 @@
+"""Rules for purescript"""
+
 run_template = """
 #!/usr/bin/env bash
 set -o errexit
@@ -42,9 +44,6 @@ def _purescript_zip(ctx):
         """,
         arguments = [tar.path, target.path],
     )
-
-def _purescript_lib(ctx):
-    _purescript_compile(ctx)
 
 def _purescript_app(ctx):
     target = _purescript_compile(ctx)
@@ -94,7 +93,7 @@ purescript_app = rule(
 )
 
 purescript_lib = rule(
-    implementation = _purescript_lib,
+    implementation = _purescript_compile,
     attrs = {
         "srcs": attr.label_list(
             allow_files = True,
@@ -112,6 +111,7 @@ purescript_lib = rule(
     outputs = {
         #"tar": "%{name}.tar",
         "target": "target",
+        "target_srcs": "%{name}",
     },
 )
 
