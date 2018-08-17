@@ -4,12 +4,12 @@ run_template = """
 #!/usr/bin/env bash
 set -o errexit
 
-node -e "require('./{target_path}/{entry_module}/index.js').{entry_function}()"
+node -e "require('./{target_path}/{entry_module}/index.js').{entry_function}({entry_params})"
 """
 
 compile_trans_template = "cp -R {path}/* {output}"
 
-def _purescript_compile(ctx, trans=[]):
+def _purescript_compile(ctx):
     srcs = ctx.files.srcs + ctx.files.deps
     target = ctx.actions.declare_file(ctx.outputs.target.basename)
     purs = ctx.executable.purs
@@ -17,9 +17,8 @@ def _purescript_compile(ctx, trans=[]):
     cmd = "\n".join(
         [ "set -o errexit"
         , """mkdir "$2" """
-        ] +
-        [compile_trans_template.format(path = f, output = target.path) for f in trans] +
-        [ """ "$1" compile --output "$2" "${@:3}" """ ]
+        , """ "$1" compile --output "$2" "${@:3}" """
+        ]
     )
 
     ctx.actions.run_shell(
@@ -32,7 +31,7 @@ def _purescript_compile(ctx, trans=[]):
 
     return target
 
-def _purescript_zip(ctx):
+def _purescript_tar(ctx):
     target = _purescript_compile(ctx)
     tar = ctx.actions.declare_file(ctx.outputs.tar.basename)
     ctx.actions.run_shell(
@@ -48,12 +47,16 @@ def _purescript_zip(ctx):
 def _purescript_app(ctx):
     target = _purescript_compile(ctx)
 
+    entry_params = ",".join([
+        '\\"{entry}\\"'.format(entry=e) for e in ctx.attr.entry_parameters
+    ])
+
     script = ctx.actions.declare_file(ctx.label.name)
     script_content = run_template.format(
         target_path    = target.short_path,
-        entry_module   = getattr(ctx.attr, "entry-module"),
-        entry_function = getattr(ctx.attr, "entry-function"),
-        entry_params   = getattr(ctx.attr, "entry-parameters"),
+        entry_module   = getattr(ctx.attr, "entry_module"),
+        entry_function = getattr(ctx.attr, "entry_function"),
+        entry_params   = entry_params,
     )
     ctx.actions.write(script, script_content, is_executable = True)
 
@@ -76,13 +79,13 @@ purescript_app = rule(
             cfg = "host",
             default = "@purs",
         ),
-        "entry-module": attr.string(
+        "entry_module": attr.string(
             default = "Main",
         ),
-        "entry-function": attr.string(
+        "entry_function": attr.string(
             default = "main",
         ),
-        "entry-parameters": attr.string_list(
+        "entry_parameters": attr.string_list(
             default = [],
         ),
     },
@@ -92,8 +95,11 @@ purescript_app = rule(
     executable = True,
 )
 
+def _purescript_lib(ctx):
+    _purescript_compile(ctx)
+
 purescript_lib = rule(
-    implementation = _purescript_compile,
+    implementation = _purescript_lib,
     attrs = {
         "srcs": attr.label_list(
             allow_files = True,
@@ -111,52 +117,51 @@ purescript_lib = rule(
     outputs = {
         #"tar": "%{name}.tar",
         "target": "target",
-        "target_srcs": "%{name}",
     },
 )
 
 test_template = """
-err=1
-node -e "require('./{test_file}/index.js').{entry_function}()"
+err=0
+node -e "require('./{target_path}/{test_file}/index.js').{entry_function}()" || err=1
 echo
 """
 
-def _run_test(f):
+def _run_test(target_path, entry_module, entry_function):
     return test_template.format(
-        test_file = f,
-        entry_function = "main",
+        target_path = target_path,
+        test_file = entry_module,
+        entry_function = entry_function,
     )
 
-def _transitive(ctx, deps):
-  return [
-      f.path for f in depset(transitive = [f.files for f in deps]).to_list()
-  ]
-
 def _purescript_test(ctx):
-    _purescript_compile(ctx, _transitive(ctx, ctx.attr.deps))
+    target = _purescript_compile(ctx)
 
     script = "\n".join(
         ["""
 #!/usr/bin/env bash
 err=0
-"""     ] +
-        [_run_test(f) for f in ctx.files.srcs] +
-        ["exit $err"],
+"""     , _run_test(target.short_path, ctx.attr.main_module, ctx.attr.main_function)
+        , "exit $err"
+        ],
     )
     ctx.actions.write(
         output = ctx.outputs.executable,
         content = script,
     )
 
-    runfiles = ctx.runfiles(files = ctx.files.srcs)
+    runfiles = ctx.runfiles(files = [target])
     return [DefaultInfo(runfiles = runfiles)]
 
 purescript_test = rule(
     implementation = _purescript_test,
     attrs = {
         "srcs": attr.label_list(allow_files = True),
-        "deps": attr.label_list(
-            default = [],
+        "deps": attr.label_list(),
+        "main_module": attr.string(
+            default = "Test.Main",
+        ),
+        "main_function": attr.string(
+            default = "main",
         ),
         "purs": attr.label(
             allow_single_file = True,

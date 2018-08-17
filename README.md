@@ -58,23 +58,77 @@ With this in place you can now define a `BUILD` file for your project:
 ```python
 load("@io_bazel_rules_purescript//:purescript.bzl", "purescript_app", "purescript_test")
 
+dependencies = \
+    [ "@purescript_console//:pkg"
+    , "@purescript_effect//:pkg"
+    , "@purescript_prelude//:pkg"
+    ]
+
 # Defines an application with default entrypoint (Main.main):
 purescript_app(
-    name = "purs-app",
-    srcs = glob(["src/**/*.purs"]),
-    deps = [ "@purescript_console//:pkg"
-           , "@purescript_effect//:pkg"
-           , "@purescript_prelude//:pkg"
-           ],
+    name       = "purs-app",
     visibility = ["//visibility:public"],
+    srcs       = glob(["src/**/*.purs"]),
+    deps       = dependencies,
 )
 ```
 
 You can now build your program and run the main function!
 
+If you want to customize the entrypoint, you can do something like:
+
+```python
+purescript_app(
+    name             = "purs-app",
+    visibility       = ["//visibility:public"],
+    srcs             = glob(["src/**/*.purs"]),
+    deps             = dependencies,
+    entry_module     = "MyModule",
+    entry_function   = "myFunction",
+    entry_parameters = [ "my", "parameters" ],
+)
+```
+
+Testing
+-------
+In the same `BUILD` file, you can define a test module:
+```python
+purescript_test(
+    name = "purs-app-test",
+    srcs = glob(["test/**/*.purs"]) + glob(["src/**/*.purs"]),
+    deps = dependencies,
+)
+```
+
+in the `test` directory I've created a module like:
+
+```purescript
+module Test.Main where
+
+-- imports omitted
+
+main :: Effect Unit
+main = log "Hello test world!"
+```
+
+when you run `bazel test` on the `:purs-app-test` project, it should succeed
+:tada:
+
+**NOTE:** the default entrypoint for testing is the module `Test.Main` and the
+function `main`. But these can be overwritten:
+
+```python
+purescript_test(
+    name          = "purs-app-test",
+    srcs          = glob(["test/**/*.purs"]) + glob(["src/**/*.purs"]),
+    deps          = dependencies,
+    main_module   = "MyMainTest.Whatever"
+    main_function = "myFun"
+)
+```
+
 TODO
 ====
 - [ ] Fix repo structure so that commands above work as expected
-- [ ] Transitive dependencies in `purescript_test` rule
 - [ ] Make sure that dependencies between projects in monorepo work
 - [ ] Add unit testing and `.travis.yml` to the repo
