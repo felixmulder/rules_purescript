@@ -13,11 +13,12 @@ def _purescript_compile(ctx):
     srcs = ctx.files.srcs + ctx.files.deps
     target = ctx.actions.declare_file(ctx.outputs.target.basename)
     purs = ctx.executable.purs
+    flags = " ".join(ctx.attr.compiler_flags)
 
     cmd = "\n".join(
         [ "set -o errexit"
         , """mkdir "$2" """
-        , """ "$1" compile --output "$2" "${@:3}" """
+        , """ "$1" compile """ + flags + """ --output "$2" "${@:3}" """
         ]
     )
 
@@ -79,6 +80,9 @@ purescript_app = rule(
             cfg = "host",
             default = "@purs",
         ),
+        "compiler_flags": attr.string_list(
+            default = []
+        ),
         "entry_module": attr.string(
             default = "Main",
         ),
@@ -112,6 +116,9 @@ purescript_lib = rule(
             executable = True,
             cfg = "host",
             default = "@purs",
+        ),
+        "compiler_flags": attr.string_list(
+            default = []
         ),
     },
     outputs = {
@@ -168,6 +175,9 @@ purescript_test = rule(
             executable = True,
             cfg = "host",
             default = "@purs",
+        ),
+        "compiler_flags": attr.string_list(
+            default = []
         ),
     },
     outputs = {
