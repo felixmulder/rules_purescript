@@ -1,9 +1,5 @@
 Purescript Rules for Bazel
 ==========================
-*NOTE:* currently the instructions below don't work as expected, I'm trying to
-sort it out, for now you can copy the `purescript.bzl` file to your `./tools/`
-directory and ignore the `http_archive` directive. Replace all occurrences of
-`@io_bazel_rules_purescript//:purescript.bzl` with `//tools:purescript.bzl`
 
 Adding purescript support to your bazel repo
 --------------------------------------------
@@ -23,7 +19,7 @@ http_archive(
 )
 
 # load the purescript rules and functions:
-load("@io_bazel_rules_purescript//:purescript.bzl", "purescript_toolchain", "purescript_dep")
+load("@io_bazel_rules_purescript//purescript:purescript.bzl", "purescript_toolchain", "purescript_dep")
 
 # downloads the `purs` command:
 purescript_toolchain()
@@ -56,7 +52,7 @@ Defining a project
 With this in place you can now define a `BUILD` file for your project:
 
 ```python
-load("@io_bazel_rules_purescript//:purescript.bzl", "purescript_app", "purescript_test")
+load("@io_bazel_rules_purescript//purescript:purescript.bzl", "purescript_app", "purescript_test")
 
 dependencies = \
     [ "@purescript_console//:pkg"
