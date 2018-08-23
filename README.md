@@ -8,7 +8,7 @@ this put the following into your `WORKSPACE` file:
 
 ```python
 # refer to a githash in this repo:
-rules_purescript_version = "e8ee09f60816875e006150600f457776af61399b"
+rules_purescript_version = "38abb155c30502c9996925640b9b8e04bd48d974"
 
 # download the archive:
 http_archive(
