@@ -125,6 +125,10 @@ purescript_test(
 
 TODO
 ====
-- [ ] Fix repo structure so that commands above work as expected
 - [ ] Make sure that dependencies between projects in monorepo work
+
+  This relies on separate compilation being a thing in Purescript, otherwise
+  each project is going to need to expose its sources to other projects
+  somehow.
+
 - [ ] Add unit testing and `.travis.yml` to the repo
