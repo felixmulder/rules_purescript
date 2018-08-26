@@ -15,7 +15,13 @@ def _purescript_compile(ctx):
     purs = ctx.executable.purs
     flags = " ".join(ctx.attr.compiler_flags)
 
-    cmd = "\n".join(
+    bazel_ps_deps = []
+    for d in ctx.attr.deps:
+        for f in d.files:
+            if f.basename == "target_srcs":
+                bazel_ps_deps = [f.path + "/**/*.purs"] + bazel_ps_deps
+
+    compileCmd = "\n".join(
         [ "set -o errexit"
         , """mkdir "$2" """
         , """ "$1" compile """ + flags + """ --output "$2" "${@:3}" """
@@ -25,9 +31,28 @@ def _purescript_compile(ctx):
     ctx.actions.run_shell(
         inputs = srcs + [purs],
         outputs = [target],
-        command = cmd,
+        command = compileCmd,
         arguments = [purs.path, target.path] +
-                    [src.path for src in srcs if src.extension == "purs"],
+                    [src.path for src in srcs if src.extension == "purs"] +
+                    bazel_ps_deps,
+    )
+
+    # TODO -- this will currently break if files have the same names, so --
+    #         gotta fix that somehow
+    cpSrcsCmd = "\n".join(
+        [ "set -o errexit"
+        , """mkdir -p "$1" """
+        , """cp "${@:2}" "$1" """
+        ]
+    )
+
+    target_srcs = ctx.actions.declare_file(ctx.outputs.target_srcs.basename)
+
+    ctx.actions.run_shell(
+        inputs = ctx.files.srcs,
+        outputs = [target_srcs],
+        command = cpSrcsCmd,
+        arguments = [target_srcs.path] + [src.path for src in ctx.files.srcs],
     )
 
     return target
@@ -95,6 +120,7 @@ purescript_app = rule(
     },
     outputs = {
         "target": "target",
+        "target_srcs": "target_srcs",
     },
     executable = True,
 )
@@ -124,6 +150,7 @@ purescript_lib = rule(
     outputs = {
         #"tar": "%{name}.tar",
         "target": "target",
+        "target_srcs": "target_srcs",
     },
 )
 
@@ -182,6 +209,7 @@ purescript_test = rule(
     },
     outputs = {
         "target": "test-target",
+        "target_srcs": "target_srcs",
     },
     test = True,
 )
