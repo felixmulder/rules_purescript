@@ -140,7 +140,3 @@ purescript_test(
     main_function = "myFun"
 )
 ```
-
-TODO
-====
-- [ ] Add unit testing and `.travis.yml` to the repo
