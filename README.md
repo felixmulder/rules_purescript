@@ -69,6 +69,7 @@ purescript_app(
 )
 ```
 
+
 You can now build your program and run the main function!
 
 If you want to customize the entrypoint, you can do something like:
@@ -82,6 +83,23 @@ purescript_app(
     entry_module     = "MyModule",
     entry_function   = "myFunction",
     entry_parameters = [ "my", "parameters" ],
+)
+```
+
+### Depending on other Bazel Purescript Projects
+Currently this is as simple as adding the label to your project's dependencies.
+There's a known issue with the way this is currently implemented. Files with
+the same name will overwrite each other. This is detailed in
+[#4](https://github.com/felixmulder/rules_purescript/issues/4).
+
+Example of depending on other bazel purescript project:
+
+```python
+purescript_app(
+    name             = "purs-app",
+    visibility       = ["//visibility:public"],
+    srcs             = glob(["src/**/*.purs"]),
+    deps             = [ "//lib:purs-lib" ] + dependencies,
 )
 ```
 
@@ -125,10 +143,4 @@ purescript_test(
 
 TODO
 ====
-- [ ] Make sure that dependencies between projects in monorepo work
-
-  This relies on separate compilation being a thing in Purescript, otherwise
-  each project is going to need to expose its sources to other projects
-  somehow.
-
 - [ ] Add unit testing and `.travis.yml` to the repo
