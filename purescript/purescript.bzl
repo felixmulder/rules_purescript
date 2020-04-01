@@ -1,5 +1,7 @@
 """Rules for purescript"""
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 run_template = """
 #!/usr/bin/env bash
 set -o errexit
@@ -17,7 +19,7 @@ def _purescript_compile(ctx):
 
     bazel_ps_deps = []
     for d in ctx.attr.deps:
-        for f in d.files:
+        for f in d.files.to_list():
             if f.basename == "target_srcs":
                 bazel_ps_deps = [f.path + "/**/*.purs"] + bazel_ps_deps
 
@@ -29,7 +31,7 @@ def _purescript_compile(ctx):
     )
 
     ctx.actions.run_shell(
-        inputs = srcs + [purs],
+        tools = srcs + [purs],
         outputs = [target],
         command = compileCmd,
         arguments = [purs.path, target.path] +
@@ -239,7 +241,7 @@ def purescript_toolchain(url="default", sha256=_default_purs_pkg_sha256_linux, s
         url = _default_purs_pkg_url_linux
 
 
-    native.new_http_archive(
+    http_archive(
         name = "purs",
         urls = [url],
         sha256 = sha256,
@@ -256,7 +258,7 @@ filegroup(
 """
 
 def purescript_dep(name, url, sha256, strip_prefix):
-    native.new_http_archive(
+    http_archive(
         name               = name,
         urls               = [url],
         sha256             = sha256,
